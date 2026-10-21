@@ -41,7 +41,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const categorySummary = entries.reduce(
     (acc, e) => {
       if (String(e.remarks || '').includes('[RECYCLE_BIN]')) return acc;
-      const cat = e.category;
+      const cat = e.category || 'Motors / Pumps';
+      if (!acc[cat]) {
+        acc[cat] = { in: 0, out: 0, balance: 0 };
+      }
       const qty = Math.max(0, Number(e.quantity) || 0);
       if (e.type === 'Stock In') {
         acc[cat].in += qty;
@@ -56,7 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       'Motors / Pumps': { in: 0, out: 0, balance: 0 },
       'Spare Parts': { in: 0, out: 0, balance: 0 },
       'Service': { in: 0, out: 0, balance: 0 },
-    }
+    } as Record<string, { in: number; out: number; balance: number }>
   );
 
   // Recent 6 transactions
@@ -280,7 +283,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                   <span>Motors & Industrial Pumps</span>
-                  <span className="font-bold text-blue-700">{categorySummary['Motors / Pumps'].balance} Units</span>
+                  <span className="font-bold text-blue-700">{categorySummary['Motors / Pumps']?.balance ?? 0} Units</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
@@ -289,15 +292,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       width: `${Math.min(
                         100,
                         stats.currentBalance > 0
-                          ? (categorySummary['Motors / Pumps'].balance / stats.currentBalance) * 100
+                          ? ((categorySummary['Motors / Pumps']?.balance ?? 0) / stats.currentBalance) * 100
                           : 0
                       )}%`,
                     }}
                   />
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500 mt-1">
-                  <span>Recv: {categorySummary['Motors / Pumps'].in}</span>
-                  <span>Disp: {categorySummary['Motors / Pumps'].out}</span>
+                  <span>Recv: {categorySummary['Motors / Pumps']?.in ?? 0}</span>
+                  <span>Disp: {categorySummary['Motors / Pumps']?.out ?? 0}</span>
                 </div>
               </div>
 
@@ -305,7 +308,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                   <span>Spare Parts & Components</span>
-                  <span className="font-bold text-indigo-700">{categorySummary['Spare Parts'].balance} Units</span>
+                  <span className="font-bold text-indigo-700">{categorySummary['Spare Parts']?.balance ?? 0} Units</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
@@ -314,15 +317,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       width: `${Math.min(
                         100,
                         stats.currentBalance > 0
-                          ? (categorySummary['Spare Parts'].balance / stats.currentBalance) * 100
+                          ? ((categorySummary['Spare Parts']?.balance ?? 0) / stats.currentBalance) * 100
                           : 0
                       )}%`,
                     }}
                   />
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500 mt-1">
-                  <span>Recv: {categorySummary['Spare Parts'].in}</span>
-                  <span>Disp: {categorySummary['Spare Parts'].out}</span>
+                  <span>Recv: {categorySummary['Spare Parts']?.in ?? 0}</span>
+                  <span>Disp: {categorySummary['Spare Parts']?.out ?? 0}</span>
                 </div>
               </div>
 
@@ -330,7 +333,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                   <span>Service & Overhaul Jobs</span>
-                  <span className="font-bold text-amber-700">{categorySummary['Service'].balance} Units</span>
+                  <span className="font-bold text-amber-700">{categorySummary['Service']?.balance ?? 0} Units</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
@@ -339,15 +342,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       width: `${Math.min(
                         100,
                         stats.currentBalance > 0
-                          ? (categorySummary['Service'].balance / stats.currentBalance) * 100
+                          ? ((categorySummary['Service']?.balance ?? 0) / stats.currentBalance) * 100
                           : 0
                       )}%`,
                     }}
                   />
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500 mt-1">
-                  <span>Recv: {categorySummary['Service'].in}</span>
-                  <span>Disp: {categorySummary['Service'].out}</span>
+                  <span>Recv: {categorySummary['Service']?.in ?? 0}</span>
+                  <span>Disp: {categorySummary['Service']?.out ?? 0}</span>
                 </div>
               </div>
             </div>
