@@ -61,7 +61,7 @@ export const DatabaseSettingsModal: React.FC<DatabaseSettingsModalProps> = ({
 
   const handleTestConnection = async () => {
     setTestStatus({ tested: false, success: false, message: '', loading: true });
-    const result = await testFirebaseConnection(authSession?.idToken);
+    const result = await testFirebaseConnection();
     setTestStatus({
       tested: true,
       success: result.success,
@@ -82,7 +82,7 @@ export const DatabaseSettingsModal: React.FC<DatabaseSettingsModalProps> = ({
       onAuthSuccess(session);
       setPassword('');
       // Auto test after signin
-      const testRes = await testFirebaseConnection(session.idToken);
+      const testRes = await testFirebaseConnection();
       setTestStatus({
         tested: true,
         success: testRes.success,

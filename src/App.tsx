@@ -87,8 +87,8 @@ export default function App() {
   const handleRefreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      if (authSession?.idToken) {
-        const { documents } = await getStockEntries(authSession.idToken);
+      if (authSession) {
+        const { documents } = await getStockEntries();
         if (documents.length > 0) {
           setEntries(documents);
           setIsProductionVerified(true);
@@ -123,10 +123,10 @@ export default function App() {
   const handleSaveStockEntry = async (
     entryData: Omit<StockEntry, 'id' | 'createdAt'> & { id?: string }
   ) => {
-    if (authSession?.idToken && isProductionVerified) {
+    if (authSession && isProductionVerified) {
       // Live production write
       try {
-        const saved = await saveStockEntry(authSession.idToken, entryData);
+        const saved = await saveStockEntry(entryData);
         setEntries((prev) => {
           const updated = prev.some((e) => e.id === saved.id)
             ? prev.map((e) => (e.id === saved.id ? saved : e))
@@ -184,8 +184,8 @@ export default function App() {
     const entry = entryToDelete;
 
     try {
-      if (authSession?.idToken && isProductionVerified) {
-        await deleteStockEntry(authSession.idToken, entry.id, true, entry.remarks);
+      if (authSession && isProductionVerified) {
+        await deleteStockEntry(entry.id, true, entry.remarks);
       }
 
       // Update local state
@@ -209,8 +209,8 @@ export default function App() {
   // Restore from Recycle Bin
   const handleRestoreEntry = async (entry: StockEntry) => {
     try {
-      if (authSession?.idToken && isProductionVerified) {
-        await restoreStockEntry(authSession.idToken, entry.id, entry.remarks);
+      if (authSession && isProductionVerified) {
+        await restoreStockEntry(entry.id, entry.remarks);
       }
 
       const restoredRemarks = (entry.remarks || '').replace('[RECYCLE_BIN]', '').trim();
@@ -234,8 +234,8 @@ export default function App() {
     }
 
     try {
-      if (authSession?.idToken && isProductionVerified) {
-        await deleteStockEntry(authSession.idToken, entry.id, false, entry.remarks);
+      if (authSession && isProductionVerified) {
+        await deleteStockEntry(entry.id, false, entry.remarks);
       }
 
       setEntries((prev) => {
