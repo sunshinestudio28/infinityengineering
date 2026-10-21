@@ -2,9 +2,14 @@ import { StockEntry, FirebaseConfigInfo } from '../types/inventory';
 import { parseFirestoreDocument, formatFirestoreDocument } from '../utils/stockCalculations';
 
 export const FIREBASE_CONSTANTS = {
-  PROJECT_ID: 'infinity-engineering-stock',
+  PROJECT_ID: 'infinity-engineering-stock-new',
   COLLECTION_NAME: 'stockEntries',
-  API_KEY: 'AIzaSyBnYjXqvLgq4cUupZXeaikb_fkE2Ca3UKE',
+  API_KEY: 'AIzaSyDkfyrRCYkQyjBH6bE8U83tTeYWUVK2Okg',
+  AUTH_DOMAIN: 'infinity-engineering-stock-new.firebaseapp.com',
+  STORAGE_BUCKET: 'infinity-engineering-stock-new.firebasestorage.app',
+  MESSAGING_SENDER_ID: '586642778865',
+  APP_ID: '1:586642778865:web:44f13f14eed6df07a3d750',
+  MEASUREMENT_ID: 'G-SD8HH2S1NK',
   ADMIN_EMAIL: 'itsrazz25@gmail.com',
   DEFAULT_USER_EMAIL: 'warehouse@infinityengineering.local',
   AUTH_STORAGE_KEY: 'infinity-engineering-auth-v2',

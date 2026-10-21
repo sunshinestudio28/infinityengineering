@@ -42,18 +42,14 @@ export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'catalog' | 'reports'>('dashboard');
 
-  // Inventory entries state
+  // Inventory entries state (Starts completely empty for manual entry)
   const [entries, setEntries] = useState<StockEntry[]>(() => {
     try {
-      const cached = localStorage.getItem(FIREBASE_CONSTANTS.STOCK_CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      localStorage.removeItem(FIREBASE_CONSTANTS.STOCK_CACHE_KEY);
     } catch (e) {
-      console.warn('Failed to load stock from cache', e);
+      // ignore
     }
-    return SEED_STOCK_ENTRIES;
+    return [];
   });
 
   // Auth and Sync state
@@ -287,8 +283,38 @@ export default function App() {
   const handleSignOut = () => {
     clearStoredAuthSession();
     setAuthSession(null);
+    setIsLoginModalOpen(true);
     showToast('Signed out of warehouse session.', 'info');
   };
+
+  // Enforce mandatory Firebase authentication check before exposing dashboard/CRM
+  if (!authSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        {/* Toast Notification */}
+        {notification && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-6 right-4 z-50 px-4 py-3 rounded-xl shadow-xl border text-xs sm:text-sm font-semibold flex items-center gap-2.5 bg-slate-900 text-white border-slate-700"
+          >
+            <CheckCircle className="w-4 h-4 text-emerald-300" />
+            <span>{notification.message}</span>
+          </div>
+        )}
+
+        <LoginModal
+          isOpen={true}
+          onClose={() => {}}
+          onSuccess={(session) => {
+            setAuthSession(session);
+            showToast(`Authenticated as ${session.email}`);
+            handleRefreshData();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white pb-16 md:pb-6">
