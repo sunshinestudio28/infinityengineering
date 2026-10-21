@@ -190,6 +190,11 @@ export async function getStockEntries(): Promise<{ documents: StockEntry[]; rawC
 export async function saveStockEntry(
   entryData: Omit<StockEntry, 'id' | 'createdAt'> & { id?: string }
 ): Promise<StockEntry> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be authenticated to save stock entries.');
+  }
+
   const colRef = collection(db, FIREBASE_CONSTANTS.COLLECTION_NAME);
   
   const payload = {
@@ -207,6 +212,7 @@ export async function saveStockEntry(
     invoiceNumber: entryData.invoiceNumber || '',
     photo: entryData.photo || '',
     remarks: entryData.remarks || '',
+    createdBy: currentUser.uid,
     createdAt: serverTimestamp(),
   };
 
