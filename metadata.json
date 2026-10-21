@@ -1,0 +1,6 @@
+{
+  "name": "Infinity Engineering Group Inventory Management",
+  "description": "Modern, responsive industrial inventory and stock tracking web application for Infinity Engineering Group pumps, motors, and spare parts.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
