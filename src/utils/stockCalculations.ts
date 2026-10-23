@@ -12,6 +12,22 @@ export function normalizePhase(val: unknown): PhaseType {
 }
 
 /**
+ * Normalizes HP string to standardized format (e.g., '1 HP', '0.5 HP', 'Unspecified HP')
+ */
+export function normalizeHp(val: unknown): string {
+  const s = String(val ?? '').trim();
+  if (!s) return 'Unspecified HP';
+  const numMatch = s.match(/^([\d.]+)\s*(?:HP)?$/i);
+  if (numMatch) {
+    const num = parseFloat(numMatch[1]);
+    if (!isNaN(num)) {
+      return `${num} HP`;
+    }
+  }
+  return s;
+}
+
+/**
  * Normalizes category string to known categories
  */
 export function normalizeCategory(val: unknown): StockCategory {
@@ -72,7 +88,7 @@ export function calculateStockBalance(entries: StockEntry[]): {
 }
 
 /**
- * Aggregates stock by model number
+ * Aggregates stock by model number AND HP rating
  */
 export function calculateModelBalances(entries: StockEntry[]): ModelSummary[] {
   const modelMap = new Map<string, ModelSummary>();
@@ -80,16 +96,19 @@ export function calculateModelBalances(entries: StockEntry[]): ModelSummary[] {
   for (const entry of entries) {
     if (isRecycleBinEntry(entry)) continue;
 
-    const key = (entry.modelNumber || entry.modelName || 'Unspecified').trim();
-    if (!key) continue;
+    const modelNum = (entry.modelNumber || entry.modelName || 'Unspecified').trim();
+    if (!modelNum) continue;
 
-    let summary = modelMap.get(key.toUpperCase());
+    const hpStr = normalizeHp(entry.hp);
+    const key = `${modelNum.toUpperCase()}|${hpStr.toUpperCase()}`;
+
+    let summary = modelMap.get(key);
     if (!summary) {
       summary = {
-        modelNumber: entry.modelNumber || key,
+        modelNumber: modelNum,
         modelName: entry.modelName,
         category: entry.category,
-        hp: entry.hp,
+        hp: hpStr,
         phase: entry.phase,
         kw: entry.kw,
         stockInTotal: 0,
@@ -97,7 +116,7 @@ export function calculateModelBalances(entries: StockEntry[]): ModelSummary[] {
         currentBalance: 0,
         activeSerialNumbers: [],
       };
-      modelMap.set(key.toUpperCase(), summary);
+      modelMap.set(key, summary);
     }
 
     const qty = Math.max(0, Number(entry.quantity) || 0);
@@ -119,12 +138,16 @@ export function calculateModelBalances(entries: StockEntry[]): ModelSummary[] {
       summary.lastMovementDate = entry.date;
     }
     // Update specs if available
-    if (!summary.hp && entry.hp) summary.hp = entry.hp;
+    if (entry.hp) summary.hp = hpStr;
     if ((!summary.phase || summary.phase === 'NA') && entry.phase && entry.phase !== 'NA') summary.phase = entry.phase;
     if (!summary.kw && entry.kw) summary.kw = entry.kw;
   }
 
-  return Array.from(modelMap.values()).sort((a, b) => a.modelNumber.localeCompare(b.modelNumber));
+  return Array.from(modelMap.values()).sort((a, b) => {
+    const cmp = a.modelNumber.localeCompare(b.modelNumber);
+    if (cmp !== 0) return cmp;
+    return (a.hp || '').localeCompare(b.hp || '');
+  });
 }
 
 /**
@@ -226,18 +249,28 @@ export function detectDuplicateSerial(
 export function validateStockOut(
   entries: StockEntry[],
   modelIdentifier: string,
-  requestedQuantity: number
+  requestedQuantity: number,
+  hpIdentifier?: string
 ): { valid: boolean; currentBalance: number; error?: string } {
   const modelBalances = calculateModelBalances(entries);
-  const target = (modelIdentifier || '').trim().toUpperCase();
-  const found = modelBalances.find((m) => m.modelNumber.toUpperCase() === target);
+  const targetModel = (modelIdentifier || '').trim().toUpperCase();
+  const targetHp = hpIdentifier ? normalizeHp(hpIdentifier) : null;
+
+  const found = modelBalances.find((m) => {
+    if (m.modelNumber.toUpperCase() !== targetModel) return false;
+    if (targetHp && targetHp !== 'Unspecified HP' && m.hp && m.hp !== 'Unspecified HP') {
+      return m.hp.toUpperCase() === targetHp.toUpperCase();
+    }
+    return true;
+  });
+
   const currentBalance = found ? found.currentBalance : 0;
 
   if (currentBalance < requestedQuantity) {
     return {
       valid: false,
       currentBalance,
-      error: `Insufficient stock for ${modelIdentifier}. Available: ${currentBalance}, Requested: ${requestedQuantity}`,
+      error: `Insufficient stock for ${modelIdentifier} ${hpIdentifier ? `(${hpIdentifier})` : ''}. Available: ${currentBalance}, Requested: ${requestedQuantity}`,
     };
   }
 

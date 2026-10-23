@@ -286,10 +286,10 @@ export const StockLedgerView: React.FC<StockLedgerViewProps> = ({
       </div>
 
       {/* Main Ledger Content: Adaptive Hybrid Table (Desktop) & Cards (Mobile) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden max-w-full">
         {/* DESKTOP TABLE VIEW (Visible on sm and up) */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="hidden md:block overflow-x-auto max-w-full">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px] sticky top-0">
               <tr>
                 <th className="py-3 px-3">Date</th>

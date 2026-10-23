@@ -317,7 +317,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white pb-16 md:pb-6">
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white pb-16 md:pb-6 w-full max-w-full overflow-x-hidden">
       {/* Toast Notification */}
       {notification && (
         <div

@@ -14,7 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { StockEntry, ModelSummary } from '../types/inventory';
-import { calculateModelBalances } from '../utils/stockCalculations';
+import { calculateModelBalances, normalizeHp } from '../utils/stockCalculations';
 import { KNOWN_MODELS } from '../data/knownModels';
 
 interface ModelsCatalogViewProps {
@@ -40,17 +40,18 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
     return calculateModelBalances(entries);
   }, [entries]);
 
-  // Combine recorded models with catalog of all 254 known models
+  // Combine recorded models with catalog of all known models grouped by model + HP
   const combinedCatalog = useMemo(() => {
     const map = new Map<string, ModelSummary>();
 
     // First populate from known catalog
     for (const km of KNOWN_MODELS) {
-      const key = km.modelNumber.trim().toUpperCase();
+      const hpStr = km.hp ? normalizeHp(km.hp) : 'Unspecified HP';
+      const key = `${km.modelNumber.trim().toUpperCase()}|${hpStr.toUpperCase()}`;
       map.set(key, {
         modelNumber: km.modelNumber,
         category: km.category,
-        hp: km.hp,
+        hp: hpStr,
         phase: km.phase,
         kw: km.kw,
         stockInTotal: 0,
@@ -62,7 +63,8 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
 
     // Merge in actual recorded transaction summaries
     for (const recorded of recordedBalances) {
-      const key = recorded.modelNumber.trim().toUpperCase();
+      const hpStr = recorded.hp ? normalizeHp(recorded.hp) : 'Unspecified HP';
+      const key = `${recorded.modelNumber.trim().toUpperCase()}|${hpStr.toUpperCase()}`;
       const existing = map.get(key);
       if (existing) {
         existing.stockInTotal = recorded.stockInTotal;
@@ -70,15 +72,19 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
         existing.currentBalance = recorded.currentBalance;
         existing.activeSerialNumbers = recorded.activeSerialNumbers;
         existing.lastMovementDate = recorded.lastMovementDate;
-        if (recorded.hp) existing.hp = recorded.hp;
         if (recorded.phase && recorded.phase !== 'NA') existing.phase = recorded.phase;
         if (recorded.kw) existing.kw = recorded.kw;
+        if (recorded.hp) existing.hp = hpStr;
       } else {
         map.set(key, recorded);
       }
     }
 
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => {
+      const cmp = a.modelNumber.localeCompare(b.modelNumber);
+      if (cmp !== 0) return cmp;
+      return (a.hp || '').localeCompare(b.hp || '');
+    });
   }, [recordedBalances]);
 
   // Filter models
@@ -115,6 +121,37 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
           (e.modelNumber || e.modelName || '').trim().toUpperCase() === target
       )
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }, [entries, selectedModelForHistory]);
+
+  // HP-wise summary for the selected model in Model Ledger Audit popup
+  const selectedModelHpSummary = useMemo(() => {
+    if (!selectedModelForHistory) return [];
+    const target = selectedModelForHistory.trim().toUpperCase();
+    const modelEntries = entries.filter(
+      (e) =>
+        !String(e.remarks || '').includes('[RECYCLE_BIN]') &&
+        (e.modelNumber || e.modelName || '').trim().toUpperCase() === target
+    );
+
+    const hpMap = new Map<string, { hp: string; inTotal: number; outTotal: number; balance: number }>();
+    for (const e of modelEntries) {
+      const hpStr = normalizeHp(e.hp);
+      let rec = hpMap.get(hpStr.toUpperCase());
+      if (!rec) {
+        rec = { hp: hpStr, inTotal: 0, outTotal: 0, balance: 0 };
+        hpMap.set(hpStr.toUpperCase(), rec);
+      }
+      const qty = Math.max(0, Number(e.quantity) || 0);
+      if (e.type === 'Stock In') {
+        rec.inTotal += qty;
+        rec.balance += qty;
+      } else {
+        rec.outTotal += qty;
+        rec.balance -= qty;
+      }
+    }
+
+    return Array.from(hpMap.values()).sort((a, b) => a.hp.localeCompare(b.hp));
   }, [entries, selectedModelForHistory]);
 
   return (
@@ -187,7 +224,7 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
 
           return (
             <div
-              key={model.modelNumber}
+              key={`${model.modelNumber}-${model.hp || 'default'}`}
               className={`bg-white rounded-xl p-4 border transition hover:shadow-md flex flex-col justify-between ${
                 hasStock ? 'border-slate-200 hover:border-blue-300' : 'border-slate-100 opacity-90'
               }`}
@@ -196,8 +233,8 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
                 {/* Header: Model & Balance Badge */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="font-mono font-bold text-sm text-slate-900 truncate" title={model.modelNumber}>
-                      {model.modelNumber}
+                    <h3 className="font-mono font-bold text-sm text-slate-900 truncate" title={`${model.modelNumber} ${model.hp ? `(${model.hp})` : ''}`}>
+                      {model.modelNumber} {model.hp && model.hp !== 'Unspecified HP' && <span className="text-blue-600 font-mono text-xs font-semibold">({model.hp})</span>}
                     </h3>
                     <p className="text-[11px] text-slate-500 mt-0.5">{model.category}</p>
                   </div>
@@ -308,6 +345,25 @@ export const ModelsCatalogView: React.FC<ModelsCatalogViewProps> = ({
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 divide-y divide-slate-100">
+              {/* HP-wise Available Stock Summary */}
+              {selectedModelHpSummary.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50/70 border border-blue-100 rounded-xl">
+                  <div className="text-[11px] font-bold text-blue-900 uppercase tracking-wider mb-2">
+                    HP-wise Available Stock Summary
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {selectedModelHpSummary.map((item) => (
+                      <div key={item.hp} className="bg-white p-2 rounded-lg border border-blue-200/80 flex items-center justify-between">
+                        <span className="font-mono font-semibold text-slate-800">{item.hp}</span>
+                        <span className={`font-bold font-mono ${item.balance > 0 ? 'text-emerald-700' : 'text-slate-600'}`}>
+                          Available: {item.balance}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {modelHistoryEntries.length === 0 ? (
                 <div className="py-12 text-center text-slate-500">
                   <Boxes className="w-8 h-8 mx-auto text-slate-400 mb-2 opacity-50" />

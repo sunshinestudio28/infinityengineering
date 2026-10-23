@@ -155,8 +155,8 @@ export const StockEntryModal: React.FC<StockEntryModalProps> = ({
 
   const stockOutValidation = useMemo(() => {
     if (type !== 'Stock Out') return { valid: true, currentBalance: 0, error: undefined };
-    return validateStockOut(existingEntries, modelNumber, quantity);
-  }, [type, modelNumber, quantity, existingEntries]);
+    return validateStockOut(existingEntries, modelNumber, quantity, hp);
+  }, [type, modelNumber, quantity, hp, existingEntries]);
 
   const handleSelectModel = (chosenModelNum: string) => {
     setModelNumber(chosenModelNum);
